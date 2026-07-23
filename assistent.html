@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Assistent" />
+<meta name="theme-color" content="#1B2430" />
+<title>Assistent</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #EAEDF0;
+    background-image: linear-gradient(#DCE1E6 1px, transparent 1px), linear-gradient(90deg, #DCE1E6 1px, transparent 1px);
+    background-size: 28px 28px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    color: #1B2430;
+    min-height: 100vh;
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .display { font-family: 'Space Grotesk', sans-serif; }
+  ::placeholder { color: #8A93A0; }
+  input, textarea, button { font-family: inherit; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) 16px 40px; }
+
+  .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 22px; }
+  .eyebrow { font-size: 11px; letter-spacing: .12em; color: #6B7280; margin-bottom: 6px; }
+  h1 { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  .sub { margin: 6px 0 0; color: #4B5563; font-size: 14px; line-height: 1.5; }
+
+  .icon-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 8px; border: 1px solid #C7CDD6;
+    background: #FFFFFF; color: #6B7280; cursor: pointer; flex-shrink: 0;
+  }
+  .icon-btn.active { background: #1B2430; color: #EAEDF0; border-color: #1B2430; }
+
+  .card { background: #FFFFFF; border: 1px solid #C7CDD6; border-radius: 10px; box-shadow: 0 1px 2px rgba(27,36,48,.06); }
+  .settings-panel { padding: 14px; margin-bottom: 20px; }
+  .settings-panel label { display:block; }
+  .settings-panel p { margin: 0 0 10px; font-size: 13px; color: #4B5563; line-height: 1.5; }
+  .row { display: flex; gap: 8px; }
+  .field { flex: 1; border: 1px solid #C7CDD6; border-radius: 7px; padding: 8px 10px; font-size: 13.5px; }
+  .btn-dark { border: none; background: #1B2430; color: #EAEDF0; border-radius: 7px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+
+  .capture { padding: 10px; margin-bottom: 20px; }
+  .capture-top { display: flex; gap: 8px; }
+  .type-toggle { display: flex; gap: 4px; flex-shrink: 0; }
+  .type-btn { display: flex; align-items: center; gap: 5px; padding: 8px 10px; border-radius: 7px; border: none; cursor: pointer; font-size: 12.5px; font-weight: 500; background: transparent; color: #6B7280; }
+  .type-btn.active-taak { background: #C98A2B; color: #fff; }
+  .type-btn.active-idee { background: #3E7C7C; color: #fff; }
+  #captureInput { flex: 1; border: none; outline: none; font-size: 14.5px; background: transparent; color: #1B2430; min-width: 0; }
+  .add-btn { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 7px; border: none; background: #1B2430; color: #EAEDF0; cursor: pointer; flex-shrink: 0; font-size: 18px; }
+
+  .picker-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #EEF0F3; flex-wrap: wrap; }
+  .chip-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; flex: 1; min-width: 160px; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; border: 1px solid transparent; background: #F0F2F4; color: #4B5563; flex-shrink: 0; }
+  .chip.on { color: #fff; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .prio-picker { display: flex; gap: 4px; flex-shrink: 0; }
+  .prio-chip { padding: 5px 8px; }
+
+  .filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+  .filter-line { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .filter-btn { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 20px; border: 1px solid #C7CDD6; background: #FFFFFF; color: #4B5563; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+  .filter-btn.on { background: #1B2430; border-color: #1B2430; color: #EAEDF0; }
+  .filter-btn.prio-on { background: #B45050; border-color: #B45050; color: #fff; }
+  .sep { width: 1px; height: 20px; background: #C7CDD6; margin: 0 2px; }
+  .count { opacity: .7; font-size: 10.5px; }
+
+  .empty { border: 1px dashed #C7CDD6; border-radius: 10px; padding: 30px 18px; text-align: center; color: #8A93A0; font-size: 13.5px; }
+
+  .items { display: flex; flex-direction: column; gap: 10px; }
+  .item { border-radius: 8px; overflow: hidden; border-left-width: 4px; border-left-style: solid; }
+  .item-head { display: flex; align-items: flex-start; gap: 9px; padding: 12px 12px; cursor: pointer; }
+  .status-dot { background: none; border: none; cursor: pointer; padding: 2px; margin-top: 1px; flex-shrink: 0; }
+  .prio-flag { margin-top: 4px; flex-shrink: 0; font-size: 11px; }
+  .item-title { font-size: 14px; font-weight: 500; }
+  .item-title.done { color: #8A93A0; text-decoration: line-through; }
+  .cat-badge { font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 500; margin-left: 6px; }
+  .item-meta { display: flex; align-items: center; gap: 7px; margin-top: 4px; font-size: 10.5px; color: #8A93A0; flex-wrap: wrap; }
+  .chat-btn { display: flex; align-items: center; justify-content: center; width: 27px; height: 27px; border-radius: 7px; flex-shrink: 0; margin-top: 1px; text-decoration: none; font-size: 14px; }
+  .chevron { color: #8A93A0; flex-shrink: 0; margin-top: 3px; transition: transform .12s ease; font-size: 13px; }
+  .chevron.open { transform: rotate(90deg); }
+
+  .item-body { border-top: 1px solid #E5E8EC; padding: 12px 12px 14px; background: #FAFBFC; }
+  .label-mono { font-size: 10px; color: #8A93A0; letter-spacing: .06em; display: block; margin-bottom: 6px; }
+  textarea.notes { width: 100%; border: 1px solid #D5DAE0; border-radius: 7px; padding: 9px 10px; font-size: 13.5px; line-height: 1.5; color: #1B2430; resize: vertical; }
+  .subgrid { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+  .spar-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid #E5E8EC; }
+  .spar-note { margin: 0 0 8px; font-size: 12px; color: #6B7280; line-height: 1.5; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .btn-outline { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #C7CDD6; background: #FFFFFF; color: #1B2430; border-radius: 7px; padding: 8px 12px; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+  .btn-dark-sm { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; border: none; background: #1B2430; color: #EAEDF0; border-radius: 7px; padding: 8px 14px; font-size: 12.5px; font-weight: 500; cursor: pointer; }
+  .link-input-row { display: flex; gap: 8px; }
+  .link-input { flex: 1; border: 1px solid #D5DAE0; border-radius: 7px; padding: 7px 10px; font-size: 12px; }
+  .btn-light { display: flex; align-items: center; gap: 5px; border: none; background: #F0F2F4; color: #1B2430; border-radius: 7px; padding: 7px 12px; font-size: 12px; font-weight: 500; cursor: pointer; }
+  .footer-row { display: flex; justify-content: space-between; margin-top: 14px; }
+  .btn-danger { display: flex; align-items: center; gap: 6px; border: none; background: transparent; color: #B45050; font-size: 12px; cursor: pointer; padding: 6px 8px; }
+  .new-cat-inline { display: inline-flex; align-items: center; gap: 4px; }
+  .new-cat-inline input { border: 1px solid #C7CDD6; border-radius: 20px; padding: 5px 10px; font-size: 12px; width: 100px; }
+  .round-btn { border: none; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div>
+        <div class="eyebrow mono">LOGBOEK — MAX</div>
+        <h1 class="display">Assistent</h1>
+        <p class="sub">Gooi er een idee in, zet een taak neer, sorteer 'm in een hokje en geef aan hoe belangrijk het is.</p>
+      </div>
+      <button class="icon-btn" id="settingsToggle" title="Claude-project koppelen">⚙</button>
+    </div>
+
+    <div id="settingsPanel" class="card settings-panel" style="display:none;">
+      <label class="label-mono">CLAUDE PROJECT</label>
+      <p>Maak in de Claude-app één project aan voor al je onderwerpen. Plak hier de link naar dat project
+      (bijv. <span class="mono">https://claude.ai/project/...</span>) — de chatknop opent dan dat project,
+      met de prompt alvast op je klembord.</p>
+      <div class="row">
+        <input id="projectInput" class="field" placeholder="https://claude.ai/project/…" />
+        <button class="btn-dark" id="saveProject">Opslaan</button>
+      </div>
+    </div>
+
+    <form id="captureForm" class="card capture">
+      <div class="capture-top">
+        <div class="type-toggle">
+          <button type="button" class="type-btn" data-type="taak" id="typeTaakBtn">✓ Taak</button>
+          <button type="button" class="type-btn" data-type="idee" id="typeIdeeBtn">✦ Idee</button>
+        </div>
+        <input id="captureInput" placeholder="Snel een idee vastleggen…" />
+        <button type="submit" class="add-btn">+</button>
+      </div>
+      <div class="picker-row">
+        <div class="chip-row" id="draftCatRow"></div>
+        <div class="prio-picker" id="draftPrioRow"></div>
+      </div>
+    </form>
+
+    <div class="filters">
+      <div class="filter-line" id="typeFilterRow"></div>
+      <div class="chip-row" id="catFilterRow"></div>
+    </div>
+
+    <div id="itemsWrap"></div>
+  </div>
+
+<script>
+(function () {
+  var STATUS = {
+    open: { label: "open", color: "#C98A2B", icon: "○" },
+    bezig: { label: "bezig", color: "#3E7C7C", icon: "◉" },
+    klaar: { label: "klaar", color: "#6B7280", icon: "●" }
+  };
+  var TYPE_META = {
+    taak: { label: "Taak", tab: "#C98A2B" },
+    idee: { label: "Idee", tab: "#3E7C7C" }
+  };
+  var PRIORITY = {
+    hoog: { label: "hoog", color: "#B45050" },
+    normaal: { label: "normaal", color: "#C98A2B" },
+    laag: { label: "laag", color: "#9AA2AD" }
+  };
+  var PRIORITY_ORDER = { hoog: 0, normaal: 1, laag: 2 };
+  var CATEGORY_PALETTE = ["#4C6FA5", "#8B5FBF", "#7A8C4D", "#B45050", "#3E7C7C", "#C98A2B", "#5C7A99"];
+
+  var LS_ITEMS = "assistent:items";
+  var LS_CATS = "assistent:hokjes";
+  var LS_PROJECT = "assistent:project";
+
+  var seedCategories = [
+    { id: "cat-werk", name: "Werk", color: "#4C6FA5" },
+    { id: "cat-financieel", name: "Financieel", color: "#7A8C4D" },
+    { id: "cat-persoonlijk", name: "Persoonlijk", color: "#8B5FBF" }
+  ];
+  var seedItems = [];
+
+  function load(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) { return fallback; }
+  }
+  function save(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+  }
+
+  var state = {
+    items: load(LS_ITEMS, null) || (save(LS_ITEMS, seedItems), seedItems),
+    categories: load(LS_CATS, null) || (save(LS_CATS, seedCategories), seedCategories),
+    projectUrl: localStorage.getItem(LS_PROJECT) || "",
+    typeFilter: "alles",
+    catFilter: "alle",
+    sortByPriority: false,
+    draftType: "idee",
+    draftPriority: "normaal",
+    draftCategory: null,
+    expanded: null,
+    copiedId: null
+  };
+
+  function persistItems() { save(LS_ITEMS, state.items); }
+  function persistCats() { save(LS_CATS, state.categories); }
+
+  function esc(s) {
+    return String(s || "").replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function timeAgo(ts) {
+    var diff = Date.now() - ts, min = Math.floor(diff / 60000);
+    if (min < 1) return "zojuist";
+    if (min < 60) return min + "m geleden";
+    var hr = Math.floor(min / 60);
+    if (hr < 24) return hr + "u geleden";
+    return Math.floor(hr / 24) + "d geleden";
+  }
+
+  function categoryOf(item) {
+    var found = null;
+    state.categories.forEach(function (c) { if (c.id === item.categoryId) found = c; });
+    return found;
+  }
+
+  function buildPrompt(item) {
+    var cat = categoryOf(item);
+    var out = 'Ik wil hierover sparren: "' + item.title + '"';
+    if (item.notes) out += "\n\nMijn notities tot nu toe:\n" + item.notes;
+    out += "\n\n(" + TYPE_META[item.type].label + " · prioriteit " + (PRIORITY[item.priority] || PRIORITY.normaal).label +
+      (cat ? " · hokje " + cat.name : "") + ", uit mijn persoonlijke logboek)";
+    return out;
+  }
+
+  function targetUrlFor(item) {
+    if (item.chatUrl) return item.chatUrl;
+    if (state.projectUrl) return state.projectUrl;
+    return "https://claude.ai/new";
+  }
+
+  function copyPrompt(item) {
+    var text = buildPrompt(item);
+    function done(ok) {
+      state.copiedId = (ok ? "" : "failed-") + item.id;
+      render();
+      setTimeout(function () { state.copiedId = null; render(); }, 2000);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { fallbackCopy(text, done); });
+    } else {
+      fallbackCopy(text, done);
+    }
+  }
+
+  function fallbackCopy(text, cb) {
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      var ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      cb(ok);
+    } catch (e) { cb(false); }
+  }
+
+  function createCategory(name) {
+    var trimmed = (name || "").trim();
+    if (!trimmed) return null;
+    var existing = null;
+    state.categories.forEach(function (c) { if (c.name.toLowerCase() === trimmed.toLowerCase()) existing = c; });
+    if (existing) return existing.id;
+    var color = CATEGORY_PALETTE[state.categories.length % CATEGORY_PALETTE.length];
+    var cat = { id: "cat-" + Date.now(), name: trimmed, color: color };
+    state.categories.push(cat);
+    persistCats();
+    return cat.id;
+  }
+
+  function addItem(text) {
+    var item = {
+      id: "item-" + Date.now(),
+      type: state.draftType,
+      title: text,
+      notes: "",
+      status: "open",
+      priority: state.draftPriority,
+      categoryId: state.draftCategory,
+      chatUrl: null,
+      createdAt: Date.now()
+    };
+    state.items.unshift(item);
+    persistItems();
+  }
+
+  function cycleStatus(id) {
+    var order = ["open", "bezig", "klaar"];
+    state.items = state.items.map(function (it) {
+      if (it.id !== id) return it;
+      var next = order[(order.indexOf(it.status) + 1) % order.length];
+      return Object.assign({}, it, { status: next });
+    });
+    persistItems();
+  }
+
+  function removeItem(id) {
+    state.items = state.items.filter(function (it) { return it.id !== id; });
+    if (state.expanded === id) state.expanded = null;
+    persistItems();
+  }
+
+  function updateItem(id, patch) {
+    state.items = state.items.map(function (it) { return it.id === id ? Object.assign({}, it, patch) : it; });
+    persistItems();
+  }
+
+  function chipHtml(opts) {
+    // opts: {label, active, color, onId, dot}
+    return '<span class="chip ' + (opts.active ? "on" : "") + '" data-action="' + opts.action + '" data-id="' + esc(opts.id || "") + '" ' +
+      'style="' + (opts.active ? "background:" + opts.color + ";" : "") + '">' +
+      (opts.dot ? '<span class="dot" style="background:' + (opts.active ? "#fff" : opts.color) + '"></span>' : "") +
+      esc(opts.label) + "</span>";
+  }
+
+  function renderDraftPickers() {
+    var catRow = document.getElementById("draftCatRow");
+    var html = chipHtml({ label: "Geen hokje", active: state.draftCategory === null, action: "draft-cat", id: "", color: "#1B2430" });
+    state.categories.forEach(function (c) {
+      html += chipHtml({ label: c.name, active: state.draftCategory === c.id, action: "draft-cat", id: c.id, color: c.color, dot: true });
+    });
+    html += '<span class="chip" data-action="new-cat" style="border:1px dashed #C7CDD6;">+ Nieuw hokje</span>';
+    catRow.innerHTML = html;
+
+    var prioRow = document.getElementById("draftPrioRow");
+    var ph = "";
+    Object.keys(PRIORITY).forEach(function (key) {
+      var meta = PRIORITY[key];
+      var active = state.draftPriority === key;
+      ph += '<span class="chip prio-chip ' + (active ? "on" : "") + '" data-action="draft-prio" data-id="' + key + '" ' +
+        'style="' + (active ? "background:" + meta.color + ";" : "") + '" title="Prioriteit: ' + meta.label + '">⚑</span>';
+    });
+    prioRow.innerHTML = ph;
+
+    document.getElementById("typeTaakBtn").className = "type-btn" + (state.draftType === "taak" ? " active-taak" : "");
+    document.getElementById("typeIdeeBtn").className = "type-btn" + (state.draftType === "idee" ? " active-idee" : "");
+    document.getElementById("captureInput").placeholder = state.draftType === "idee" ? "Snel een idee vastleggen…" : "Nieuwe taak…";
+  }
+
+  function renderFilters() {
+    var counts = {
+      alles: state.items.length,
+      taken: state.items.filter(function (i) { return i.type === "taak"; }).length,
+      ideeen: state.items.filter(function (i) { return i.type === "idee"; }).length
+    };
+    var types = [["alles", "Alles"], ["taken", "Taken"], ["ideeen", "Ideeën"]];
+    var line = "";
+    types.forEach(function (t) {
+      var active = state.typeFilter === t[0];
+      line += '<button class="filter-btn ' + (active ? "on" : "") + '" data-action="type-filter" data-id="' + t[0] + '">' +
+        esc(t[1]) + ' <span class="count mono">' + counts[t[0]] + "</span></button>";
+    });
+    line += '<div class="sep"></div>';
+    line += '<button class="filter-btn ' + (state.sortByPriority ? "prio-on" : "") + '" data-action="sort-prio">⚑ Belangrijkste eerst</button>';
+    document.getElementById("typeFilterRow").innerHTML = line;
+
+    var catLine = chipHtml({ label: "Alle hokjes", active: state.catFilter === "alle", action: "cat-filter", id: "alle", color: "#1B2430" });
+    state.categories.forEach(function (c) {
+      catLine += chipHtml({ label: c.name, active: state.catFilter === c.id, action: "cat-filter", id: c.id, color: c.color, dot: true });
+    });
+    document.getElementById("catFilterRow").innerHTML = catLine;
+  }
+
+  function renderItems() {
+    var filtered = state.items.filter(function (it) {
+      if (state.typeFilter === "taken" && it.type !== "taak") return false;
+      if (state.typeFilter === "ideeen" && it.type !== "idee") return false;
+      if (state.catFilter !== "alle" && it.categoryId !== state.catFilter) return false;
+      return true;
+    });
+    if (state.sortByPriority) {
+      filtered = filtered.slice().sort(function (a, b) {
+        var pa = PRIORITY_ORDER[a.priority] != null ? PRIORITY_ORDER[a.priority] : 1;
+        var pb = PRIORITY_ORDER[b.priority] != null ? PRIORITY_ORDER[b.priority] : 1;
+        return pa !== pb ? pa - pb : b.createdAt - a.createdAt;
+      });
+    }
+
+    var wrap = document.getElementById("itemsWrap");
+    if (filtered.length === 0) {
+      wrap.innerHTML = '<div class="empty">Niks gevonden — typ hierboven iets of pas het filter aan.</div>';
+      return;
+    }
+
+    var html = '<div class="items">';
+    filtered.forEach(function (item) {
+      var meta = TYPE_META[item.type];
+      var st = STATUS[item.status];
+      var pr = PRIORITY[item.priority] || PRIORITY.normaal;
+      var cat = categoryOf(item);
+      var isOpen = state.expanded === item.id;
+      var hasChat = !!item.chatUrl;
+
+      html += '<div class="item card" style="border-left-color:' + meta.tab + '">';
+      html += '<div class="item-head" data-action="toggle-open" data-id="' + item.id + '">';
+
+      html += '<button class="status-dot" data-action="cycle-status" data-id="' + item.id + '" style="color:' + st.color + '" title="Status: ' + st.label + '">' + st.icon + "</button>";
+      html += '<span class="prio-flag" style="color:' + pr.color + '" title="Prioriteit: ' + pr.label + '">⚑</span>';
+
+      html += '<div style="flex:1;min-width:0;">';
+      html += '<div><span class="item-title ' + (item.status === "klaar" ? "done" : "") + '">' + esc(item.title) + "</span>";
+      if (cat) html += '<span class="cat-badge" style="background:' + cat.color + '1A;color:' + cat.color + '">' + esc(cat.name) + "</span>";
+      html += "</div>";
+      html += '<div class="item-meta mono">' + esc(meta.label) + " · " + esc(st.label) + " · " + timeAgo(item.createdAt);
+      if (item.notes) html += ' · <span style="color:#3E7C7C;">notities</span>';
+      html += "</div></div>";
+
+      html += '<a class="chat-btn" href="' + esc(targetUrlFor(item)) + '" target="_blank" rel="noopener noreferrer" ' +
+        'data-action="' + (hasChat ? "noop" : "copy-prompt") + '" data-id="' + item.id + '" ' +
+        'style="color:' + (hasChat ? "#3E7C7C" : "#8A93A0") + ";background:" + (hasChat ? "#3E7C7C1A" : "#F0F2F4") + '" ' +
+        'title="' + (hasChat ? "Ga naar chat" : "Spar hierover in Claude") + '">' +
+        (state.copiedId === item.id ? "✓" : "💬") + "</a>";
+
+      html += '<span class="chevron ' + (isOpen ? "open" : "") + '">›</span>';
+      html += "</div>"; // item-head
+
+      if (isOpen) {
+        html += '<div class="item-body">';
+
+        html += '<div class="subgrid">';
+        html += '<div><span class="label-mono">HOKJE</span><div class="chip-row">';
+        html += chipHtml({ label: "Geen", active: !item.categoryId, action: "item-cat", id: item.id + "|", color: "#1B2430" });
+        state.categories.forEach(function (c) {
+          html += chipHtml({ label: c.name, active: item.categoryId === c.id, action: "item-cat", id: item.id + "|" + c.id, color: c.color });
+        });
+        html += "</div></div>";
+
+        html += '<div><span class="label-mono">PRIORITEIT</span><div class="chip-row">';
+        Object.keys(PRIORITY).forEach(function (key) {
+          var m2 = PRIORITY[key];
+          var active = item.priority === key;
+          html += '<span class="chip ' + (active ? "on" : "") + '" data-action="item-prio" data-id="' + item.id + "|" + key + '" ' +
+            'style="' + (active ? "background:" + m2.color + ";" : "") + '">⚑ ' + esc(m2.label) + "</span>";
+        });
+        html += "</div></div>";
+        html += "</div>"; // subgrid
+
+        html += '<span class="label-mono">SPARREN / NOTITIES</span>';
+        html += '<textarea class="notes" rows="5" data-id="' + item.id + '" placeholder="Denk hier verder uit — opties, volgende stappen, vragen…">' + esc(item.notes) + "</textarea>";
+
+        html += '<div class="spar-section">';
+        html += '<span class="label-mono">SPARREN IN CLAUDE</span>';
+        if (hasChat) {
+          html += '<div class="btn-row" style="align-items:center;">';
+          html += '<a class="btn-dark-sm" href="' + esc(item.chatUrl) + '" target="_blank" rel="noopener noreferrer">↗ Ga naar chat</a>';
+          html += '<button class="btn-danger" data-action="unlink-chat" data-id="' + item.id + '" style="color:#8A93A0;">loskoppelen</button>';
+          html += "</div>";
+        } else {
+          html += '<p class="spar-note">Kopieer de prompt, open je project en start een nieuwe chat — plak daarna de link van die chat hieronder om er voortaan direct in terug te komen.</p>';
+          html += '<div class="btn-row">';
+          html += '<button class="btn-outline" data-action="copy-prompt" data-id="' + item.id + '">' +
+            (state.copiedId === item.id ? "✓ Gekopieerd" : (state.copiedId === "failed-" + item.id ? "Kopiëren mislukt" : "⧉ Kopieer prompt")) + "</button>";
+          html += '<a class="btn-dark-sm" href="' + esc(targetUrlFor(item)) + '" target="_blank" rel="noopener noreferrer">↗ ' + (state.projectUrl ? "Open project" : "Open Claude") + "</a>";
+          html += "</div>";
+          html += '<div class="link-input-row">';
+          html += '<input class="link-input" id="chatlink-' + item.id + '" placeholder="Plak hier de link van de chat…" />';
+          html += '<button class="btn-light" data-action="save-chat-link" data-id="' + item.id + '">🔗 Koppel</button>';
+          html += "</div>";
+        }
+        html += "</div>"; // spar-section
+
+        html += '<div class="footer-row">';
+        html += '<button class="btn-danger" data-action="delete-item" data-id="' + item.id + '">🗑 Verwijderen</button>';
+        html += '<button class="btn-dark" data-action="save-note" data-id="' + item.id + '">Opslaan</button>';
+        html += "</div>";
+
+        html += "</div>"; // item-body
+      }
+      html += "</div>"; // item
+    });
+    html += "</div>";
+    wrap.innerHTML = html;
+  }
+
+  function render() {
+    renderDraftPickers();
+    renderFilters();
+    renderItems();
+  }
+
+  // --- event delegation ---
+  document.addEventListener("click", function (e) {
+    var el = e.target.closest("[data-action]");
+    if (!el) return;
+    var action = el.getAttribute("data-action");
+    var id = el.getAttribute("data-id");
+
+    if (action === "draft-cat") { state.draftCategory = id || null; render(); }
+    else if (action === "draft-prio") { state.draftPriority = id; render(); }
+    else if (action === "new-cat") {
+      var name = prompt("Naam van het nieuwe hokje:");
+      if (name) { var cid = createCategory(name); state.draftCategory = cid; render(); }
+    }
+    else if (action === "type-filter") { state.typeFilter = id; render(); }
+    else if (action === "sort-prio") { state.sortByPriority = !state.sortByPriority; render(); }
+    else if (action === "cat-filter") { state.catFilter = id; render(); }
+    else if (action === "toggle-open") {
+      var item = state.items.filter(function (it) { return it.id === id; })[0];
+      state.expanded = state.expanded === id ? null : id;
+      render();
+    }
+    else if (action === "cycle-status") { e.stopPropagation(); cycleStatus(id); }
+    else if (action === "copy-prompt") {
+      e.stopPropagation();
+      var it2 = state.items.filter(function (x) { return x.id === id; })[0];
+      if (it2) copyPrompt(it2);
+    }
+    else if (action === "item-cat") {
+      var parts = id.split("|");
+      updateItem(parts[0], { categoryId: parts[1] || null });
+      render();
+    }
+    else if (action === "item-prio") {
+      var p2 = id.split("|");
+      updateItem(p2[0], { priority: p2[1] });
+      render();
+    }
+    else if (action === "unlink-chat") { updateItem(id, { chatUrl: null }); render(); }
+    else if (action === "save-chat-link") {
+      var input = document.getElementById("chatlink-" + id);
+      if (input && input.value.trim()) {
+        updateItem(id, { chatUrl: input.value.trim() });
+        render();
+      }
+    }
+    else if (action === "delete-item") {
+      if (confirm("Dit item verwijderen?")) { removeItem(id); render(); }
+    }
+    else if (action === "save-note") {
+      var ta = document.querySelector('textarea.notes[data-id="' + id + '"]');
+      updateItem(id, { notes: ta ? ta.value : "" });
+      render();
+    }
+  });
+
+  document.getElementById("typeTaakBtn").addEventListener("click", function () { state.draftType = "taak"; render(); });
+  document.getElementById("typeIdeeBtn").addEventListener("click", function () { state.draftType = "idee"; render(); });
+
+  document.getElementById("captureForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var input = document.getElementById("captureInput");
+    var text = input.value.trim();
+    if (!text) return;
+    addItem(text);
+    input.value = "";
+    render();
+    input.focus();
+  });
+
+  document.getElementById("settingsToggle").addEventListener("click", function () {
+    var panel = document.getElementById("settingsPanel");
+    panel.style.display = panel.style.display === "none" ? "block" : "none";
+    document.getElementById("settingsToggle").classList.toggle("active");
+  });
+
+  document.getElementById("saveProject").addEventListener("click", function (e) {
+    e.preventDefault();
+    var val = document.getElementById("projectInput").value.trim();
+    state.projectUrl = val;
+    localStorage.setItem(LS_PROJECT, val);
+    document.getElementById("settingsPanel").style.display = "none";
+    document.getElementById("settingsToggle").classList.remove("active");
+    render();
+  });
+
+  // init
+  document.getElementById("projectInput").value = state.projectUrl;
+  if (!state.projectUrl) {
+    document.getElementById("settingsPanel").style.display = "block";
+    document.getElementById("settingsToggle").classList.add("active");
+  }
+  render();
+})();
+</script>
+</body>
+</html>
