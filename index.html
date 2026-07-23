@@ -149,6 +149,16 @@
         <input id="projectInput" class="field" placeholder="https://claude.ai/project/…" />
         <button class="btn-dark" id="saveProject">Opslaan</button>
       </div>
+
+      <label class="label-mono" style="margin-top:16px;">BACK-UP</label>
+      <p>Verwijder je ooit het app-icoon van je beginscherm, dan verdwijnt ook je data — iOS behandelt
+      deze app als aparte opslag, los van Safari. Exporteer af en toe een back-up en bewaar 'm ergens
+      veilig (bijv. Notities), zodat je 'm terug kan zetten als dat ooit nodig is.</p>
+      <div class="row" style="margin-bottom:8px;">
+        <button class="btn-outline" id="exportBtn" type="button" style="flex:1;justify-content:center;">⭳ Exporteer back-up</button>
+        <button class="btn-light" id="importBtn" type="button">⭱ Importeer</button>
+      </div>
+      <textarea id="backupArea" class="notes" rows="3" placeholder="Back-up tekst verschijnt hier na exporteren — of plak hier een eerdere back-up en klik Importeer." style="display:none;"></textarea>
     </div>
 
     <form id="captureForm" class="card capture">
@@ -756,6 +766,59 @@
     var panel = document.getElementById("settingsPanel");
     panel.style.display = panel.style.display === "none" ? "block" : "none";
     document.getElementById("settingsToggle").classList.toggle("active");
+  });
+
+  document.getElementById("exportBtn").addEventListener("click", function () {
+    var payload = {
+      items: state.items,
+      categories: state.categories,
+      projectUrl: state.projectUrl,
+      exportedAt: new Date().toISOString()
+    };
+    var text = "ASSISTENT-BACKUP-v1:" + JSON.stringify(payload);
+    var area = document.getElementById("backupArea");
+    area.style.display = "block";
+    area.value = text;
+    area.focus();
+    area.select();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(function () {});
+    }
+  });
+
+  document.getElementById("importBtn").addEventListener("click", function () {
+    var area = document.getElementById("backupArea");
+    if (area.style.display === "none") {
+      area.style.display = "block";
+      area.value = "";
+      area.placeholder = "Plak hier je back-up tekst en klik nogmaals op Importeer…";
+      area.focus();
+      return;
+    }
+    var raw = area.value.trim();
+    if (!raw) return;
+    var prefix = "ASSISTENT-BACKUP-v1:";
+    if (raw.indexOf(prefix) !== 0) {
+      alert("Dit ziet er niet uit als een geldige back-up. Plak de volledige tekst die je eerder hebt geëxporteerd.");
+      return;
+    }
+    try {
+      var payload = JSON.parse(raw.slice(prefix.length));
+      if (!confirm("Dit vervangt je huidige data door de back-up. Doorgaan?")) return;
+      state.items = payload.items || [];
+      state.categories = payload.categories || seedCategories;
+      state.projectUrl = payload.projectUrl || "";
+      persistItems();
+      persistCats();
+      localStorage.setItem(LS_PROJECT, state.projectUrl);
+      document.getElementById("projectInput").value = state.projectUrl;
+      area.style.display = "none";
+      area.value = "";
+      render();
+      alert("Back-up teruggezet.");
+    } catch (e) {
+      alert("Kon de back-up niet lezen. Controleer of je de volledige tekst hebt geplakt.");
+    }
   });
 
   document.getElementById("saveProject").addEventListener("click", function (e) {
