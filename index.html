@@ -106,6 +106,27 @@
   .new-cat-inline { display: inline-flex; align-items: center; gap: 4px; }
   .new-cat-inline input { border: 1px solid #C7CDD6; border-radius: 20px; padding: 5px 10px; font-size: 12px; width: 100px; }
   .round-btn { border: none; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px; }
+
+  .progress-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid #E5E8EC; }
+  .progress-cols { display: flex; gap: 18px; flex-wrap: wrap; }
+  .progress-col { flex: 1; min-width: 220px; }
+  .progress-bar-outer { height: 6px; border-radius: 4px; background: #E5E8EC; overflow: hidden; margin: 6px 0 10px; }
+  .progress-bar-inner { height: 100%; background: #3E7C7C; border-radius: 4px; }
+  .check-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 13px; }
+  .check-item .check-toggle { width: 17px; height: 17px; border-radius: 5px; border: 1.5px solid #C7CDD6; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; background: #fff; }
+  .check-item.done .check-toggle { background: #3E7C7C; border-color: #3E7C7C; color: #fff; }
+  .check-item.done .check-text { color: #8A93A0; text-decoration: line-through; }
+  .check-text { flex: 1; word-break: break-word; }
+  .check-del { border: none; background: transparent; color: #C7CDD6; cursor: pointer; font-size: 13px; padding: 2px 4px; flex-shrink: 0; }
+  .add-row { display: flex; gap: 6px; margin-top: 6px; }
+  .mini-input { flex: 1; border: 1px solid #D5DAE0; border-radius: 7px; padding: 6px 9px; font-size: 12.5px; }
+  .mini-add-btn { border: none; background: #F0F2F4; color: #1B2430; border-radius: 7px; padding: 6px 11px; font-size: 13px; cursor: pointer; flex-shrink: 0; }
+  .timeline-entry { padding: 7px 0; border-bottom: 1px dashed #E5E8EC; font-size: 12.5px; }
+  .timeline-entry:last-child { border-bottom: none; }
+  .timeline-date { display: flex; justify-content: space-between; align-items: center; }
+  .progress-mini { display: inline-flex; align-items: center; gap: 5px; }
+  .progress-mini-bar { width: 44px; height: 4px; border-radius: 3px; background: #E5E8EC; overflow: hidden; }
+  .progress-mini-bar-inner { height: 100%; background: #3E7C7C; }
 </style>
 </head>
 <body>
@@ -297,9 +318,66 @@
       priority: state.draftPriority,
       categoryId: state.draftCategory,
       chatUrl: null,
+      checklist: [],
+      log: [],
       createdAt: Date.now()
     };
     state.items.unshift(item);
+    persistItems();
+  }
+
+  function checklistProgress(item) {
+    var list = item.checklist || [];
+    var done = list.filter(function (c) { return c.done; }).length;
+    return { done: done, total: list.length };
+  }
+
+  function addChecklistItem(itemId, text) {
+    var trimmed = (text || "").trim();
+    if (!trimmed) return;
+    state.items = state.items.map(function (it) {
+      if (it.id !== itemId) return it;
+      var list = (it.checklist || []).concat([{ id: "chk-" + Date.now(), text: trimmed, done: false }]);
+      return Object.assign({}, it, { checklist: list });
+    });
+    persistItems();
+  }
+
+  function toggleChecklistItem(itemId, checkId) {
+    state.items = state.items.map(function (it) {
+      if (it.id !== itemId) return it;
+      var list = (it.checklist || []).map(function (c) { return c.id === checkId ? Object.assign({}, c, { done: !c.done }) : c; });
+      return Object.assign({}, it, { checklist: list });
+    });
+    persistItems();
+  }
+
+  function removeChecklistItem(itemId, checkId) {
+    state.items = state.items.map(function (it) {
+      if (it.id !== itemId) return it;
+      var list = (it.checklist || []).filter(function (c) { return c.id !== checkId; });
+      return Object.assign({}, it, { checklist: list });
+    });
+    persistItems();
+  }
+
+  function addLogEntry(itemId, text) {
+    var trimmed = (text || "").trim();
+    if (!trimmed) return;
+    state.items = state.items.map(function (it) {
+      if (it.id !== itemId) return it;
+      var list = [{ id: "log-" + Date.now(), text: trimmed, createdAt: Date.now() }].concat(it.log || []);
+      return Object.assign({}, it, { log: list });
+    });
+    persistItems();
+  }
+
+  function removeLogEntry(itemId, logId) {
+    state.items = state.items.map(function (it) {
+      if (it.id !== itemId) return it;
+      var list = (it.log || []).filter(function (l) { return l.id !== logId; });
+      return Object.assign({}, it, { log: list });
+    });
     persistItems();
   }
 
@@ -422,6 +500,12 @@
       html += "</div>";
       html += '<div class="item-meta mono">' + esc(meta.label) + " · " + esc(st.label) + " · " + timeAgo(item.createdAt);
       if (item.notes) html += ' · <span style="color:#3E7C7C;">notities</span>';
+      var prog = checklistProgress(item);
+      if (prog.total > 0) {
+        var pct = Math.round((prog.done / prog.total) * 100);
+        html += ' · <span class="progress-mini">' + prog.done + "/" + prog.total +
+          '<span class="progress-mini-bar"><span class="progress-mini-bar-inner" style="width:' + pct + '%"></span></span></span>';
+      }
       html += "</div></div>";
 
       html += '<a class="chat-btn" href="' + esc(targetUrlFor(item)) + '" target="_blank" rel="noopener noreferrer" ' +
@@ -456,6 +540,58 @@
 
         html += '<span class="label-mono">SPARREN / NOTITIES</span>';
         html += '<textarea class="notes" rows="5" data-id="' + item.id + '" placeholder="Denk hier verder uit — opties, volgende stappen, vragen…">' + esc(item.notes) + "</textarea>";
+
+        (function () {
+          var prog = checklistProgress(item);
+          var pct = prog.total > 0 ? Math.round((prog.done / prog.total) * 100) : 0;
+          var checklist = item.checklist || [];
+          var log = item.log || [];
+
+          html += '<div class="progress-section">';
+          html += '<span class="label-mono">VOORTGANG</span>';
+          html += '<div class="progress-cols">';
+
+          // checklist column
+          html += '<div class="progress-col">';
+          html += '<div style="font-size:11.5px;color:#6B7280;margin-bottom:2px;">Checklist' + (prog.total > 0 ? " — " + prog.done + "/" + prog.total : "") + "</div>";
+          if (prog.total > 0) {
+            html += '<div class="progress-bar-outer"><div class="progress-bar-inner" style="width:' + pct + '%"></div></div>';
+          }
+          checklist.forEach(function (c) {
+            html += '<div class="check-item ' + (c.done ? "done" : "") + '">';
+            html += '<span class="check-toggle" data-action="toggle-check" data-id="' + item.id + "|" + c.id + '">' + (c.done ? "✓" : "") + "</span>";
+            html += '<span class="check-text">' + esc(c.text) + "</span>";
+            html += '<button class="check-del" data-action="remove-check" data-id="' + item.id + "|" + c.id + '">×</button>';
+            html += "</div>";
+          });
+          html += '<div class="add-row">';
+          html += '<input class="mini-input" id="checkdraft-' + item.id + '" placeholder="Nieuwe stap…" />';
+          html += '<button class="mini-add-btn" data-action="add-check" data-id="' + item.id + '">+</button>';
+          html += "</div>";
+          html += "</div>"; // checklist col
+
+          // timeline column
+          html += '<div class="progress-col">';
+          html += '<div style="font-size:11.5px;color:#6B7280;margin-bottom:2px;">Tijdlijn</div>';
+          if (log.length === 0) {
+            html += '<div style="font-size:12px;color:#9AA2AD;padding:4px 0;">Nog geen updates.</div>';
+          }
+          log.forEach(function (l) {
+            html += '<div class="timeline-entry">';
+            html += '<div class="timeline-date"><span class="mono" style="color:#9AA2AD;font-size:10.5px;">' + timeAgo(l.createdAt) + '</span>';
+            html += '<button class="check-del" data-action="remove-log" data-id="' + item.id + "|" + l.id + '">×</button></div>';
+            html += '<div>' + esc(l.text) + "</div>";
+            html += "</div>";
+          });
+          html += '<div class="add-row">';
+          html += '<input class="mini-input" id="logdraft-' + item.id + '" placeholder="Update na dit gesprek…" />';
+          html += '<button class="mini-add-btn" data-action="add-log" data-id="' + item.id + '">+</button>';
+          html += "</div>";
+          html += "</div>"; // timeline col
+
+          html += "</div>"; // progress-cols
+          html += "</div>"; // progress-section
+        })();
 
         html += '<div class="spar-section">';
         html += '<span class="label-mono">SPARREN IN CLAUDE</span>';
@@ -535,6 +671,43 @@
       render();
     }
     else if (action === "unlink-chat") { updateItem(id, { chatUrl: null }); render(); }
+    else if (action === "toggle-check") {
+      var tc = id.split("|");
+      toggleChecklistItem(tc[0], tc[1]);
+      render();
+    }
+    else if (action === "remove-check") {
+      var rc = id.split("|");
+      removeChecklistItem(rc[0], rc[1]);
+      render();
+    }
+    else if (action === "add-check") {
+      var input3 = document.getElementById("checkdraft-" + id);
+      if (input3 && input3.value.trim()) {
+        addChecklistItem(id, input3.value);
+        render();
+        setTimeout(function () {
+          var el = document.getElementById("checkdraft-" + id);
+          if (el) el.focus();
+        }, 0);
+      }
+    }
+    else if (action === "remove-log") {
+      var rl = id.split("|");
+      removeLogEntry(rl[0], rl[1]);
+      render();
+    }
+    else if (action === "add-log") {
+      var input4 = document.getElementById("logdraft-" + id);
+      if (input4 && input4.value.trim()) {
+        addLogEntry(id, input4.value);
+        render();
+        setTimeout(function () {
+          var el = document.getElementById("logdraft-" + id);
+          if (el) el.focus();
+        }, 0);
+      }
+    }
     else if (action === "save-chat-link") {
       var input = document.getElementById("chatlink-" + id);
       if (input && input.value.trim()) {
@@ -549,6 +722,19 @@
       var ta = document.querySelector('textarea.notes[data-id="' + id + '"]');
       updateItem(id, { notes: ta ? ta.value : "" });
       render();
+    }
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter") return;
+    var id = e.target && e.target.id;
+    if (!id) return;
+    if (id.indexOf("checkdraft-") === 0) {
+      var itemId = id.slice("checkdraft-".length);
+      if (e.target.value.trim()) { addChecklistItem(itemId, e.target.value); render(); setTimeout(function () { var el = document.getElementById(id); if (el) el.focus(); }, 0); }
+    } else if (id.indexOf("logdraft-") === 0) {
+      var itemId2 = id.slice("logdraft-".length);
+      if (e.target.value.trim()) { addLogEntry(itemId2, e.target.value); render(); setTimeout(function () { var el = document.getElementById(id); if (el) el.focus(); }, 0); }
     }
   });
 
